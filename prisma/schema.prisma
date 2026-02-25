@@ -1,0 +1,287 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  OWNER
+  MANAGER
+  EMPLOYEE
+}
+
+enum PlanType {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  UNQUALIFIED
+  CONVERTED
+}
+
+enum DealStage {
+  PROSPECTING
+  QUALIFICATION
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  LEAD_ASSIGNED
+  DEAL_UPDATE
+  COMMISSION_UPDATE
+}
+
+// ─── Models ─────────────────────────────────────────────
+
+model Company {
+  id             String   @id @default(cuid())
+  subscriptionId String   @unique
+  name           String
+  slug           String   @unique
+  logo           String?
+  industry       String?
+  phone          String?
+  email          String?
+  address        String?  @db.Text
+  website        String?
+  plan           PlanType @default(FREE)
+  maxUsers       Int      @default(5)
+  maxQuizzes     Int      @default(10)
+  isActive       Boolean  @default(true)
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users         User[]
+  quizzes       Quiz[]
+  leads         Lead[]
+  deals         Deal[]
+  commissions   Commission[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  @@map("companies")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  companyId    String
+  username     String
+  email        String
+  passwordHash String
+  firstName    String
+  lastName     String
+  avatar       String?
+  phone        String?
+  role         Role      @default(EMPLOYEE)
+  isActive     Boolean   @default(true)
+  permissions  Json?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignedLeads Lead[]         @relation("LeadAssignee")
+  assignedDeals Deal[]         @relation("DealAssignee")
+  commissions   Commission[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  @@unique([companyId, username])
+  @@unique([companyId, email])
+  @@index([companyId])
+  @@index([role])
+  @@map("users")
+}
+
+model Quiz {
+  id              String   @id @default(cuid())
+  companyId       String
+  title           String
+  description     String?  @db.Text
+  slug            String
+  config          Json
+  isPublished     Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  primaryColor    String   @default("#6366f1")
+  backgroundImage String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  leads   Lead[]
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+  @@map("quizzes")
+}
+
+model Lead {
+  id            String     @id @default(cuid())
+  companyId     String
+  quizId        String?
+  assignedToId  String?
+  firstName     String?
+  lastName      String?
+  email         String?
+  phone         String?
+  companyName   String?
+  source        String     @default("quiz")
+  status        LeadStatus @default(NEW)
+  quizResponses Json?
+  score         Int?       @default(0)
+  notes         Json?
+  tags          String?
+  convertedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quiz       Quiz?   @relation(fields: [quizId], references: [id], onDelete: SetNull)
+  assignedTo User?   @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  deals      Deal[]
+
+  @@index([companyId])
+  @@index([companyId, status])
+  @@index([companyId, assignedToId])
+  @@index([companyId, phone])
+  @@map("leads")
+}
+
+model Deal {
+  id                String    @id @default(cuid())
+  companyId         String
+  leadId            String
+  assignedToId      String
+  title             String
+  value             Decimal   @db.Decimal(12, 2)
+  currency          String    @default("USD")
+  stage             DealStage @default(PROSPECTING)
+  probability       Int       @default(0)
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lead        Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignedTo  User         @relation("DealAssignee", fields: [assignedToId], references: [id], onDelete: Cascade)
+  commissions Commission[]
+
+  @@index([companyId])
+  @@index([companyId, stage])
+  @@index([companyId, assignedToId])
+  @@map("deals")
+}
+
+model Commission {
+  id         String           @id @default(cuid())
+  companyId  String
+  dealId     String
+  userId     String
+  amount     Decimal          @db.Decimal(12, 2)
+  percentage Float
+  status     CommissionStatus @default(PENDING)
+  paidAt     DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  deal    Deal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([companyId, userId])
+  @@index([companyId, status])
+  @@map("commissions")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  companyId String
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  companyId String
+  userId    String
+  type      NotificationType @default(INFO)
+  title     String
+  message   String           @db.Text
+  isRead    Boolean          @default(false)
+  linkUrl   String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+// ─── Logging System (standalone, no relations) ──────────
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String
+  message   String   @db.Text
+  stack     String?  @db.Text
+  source    String
+  endpoint  String?
+  userId    String?
+  companyId String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([level])
+  @@index([source])
+  @@index([createdAt])
+  @@index([companyId])
+  @@map("system_logs")
+}
