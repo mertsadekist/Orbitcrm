@@ -53,6 +53,21 @@ export default {
       // Everything else — requires auth
       return isLoggedIn;
     },
+    // Lightweight jwt/session callbacks so the middleware's authorized()
+    // can read custom fields (role). auth.ts overrides these with the
+    // full implementations for the app.
+    jwt({ token, user }) {
+      if (user) {
+        token.role = (user as Record<string, unknown>).role;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (token.role) {
+        (session.user as Record<string, unknown>).role = token.role;
+      }
+      return session;
+    },
   },
   providers: [], // Configured in auth.ts
 } satisfies NextAuthConfig;

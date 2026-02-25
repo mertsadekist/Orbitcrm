@@ -5,8 +5,8 @@ import { BackupSection } from "@/components/settings/backup-section";
 export default async function BackupPage() {
   const tenant = await getTenant();
 
-  // Only OWNER can access backup page
-  if (tenant.role !== "OWNER") {
+  // Only OWNER and SUPER_ADMIN can access backup page
+  if (tenant.role !== "OWNER" && tenant.role !== "SUPER_ADMIN") {
     redirect("/settings/users");
   }
 
