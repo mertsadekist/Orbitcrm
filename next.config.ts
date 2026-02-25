@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
-// @ts-expect-error - next-pwa doesn't have TypeScript types
-import withPWA from "next-pwa";
+import withPWA from "@ducanh2912/next-pwa";
 
 const nextConfig: NextConfig = {
   turbopack: {}, // Empty config to silence Turbopack/webpack warning
