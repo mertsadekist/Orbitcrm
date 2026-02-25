@@ -38,6 +38,9 @@ WORKDIR /app
 # Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
+# Copy generated Prisma client from deps stage (not in git repo)
+COPY --from=deps /app/src/generated ./src/generated
+
 # Copy all source files
 COPY . .
 
