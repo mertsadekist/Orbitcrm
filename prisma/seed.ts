@@ -33,7 +33,7 @@ async function main() {
   console.log("🏢 Creating PLATFORM company...");
   const platform = await prisma.company.create({
     data: {
-      subscriptionId: "PLATFORM",
+      subscriptionId: "100000",
       name: "OrbitFlow Platform",
       slug: "platform",
       plan: "ENTERPRISE",
@@ -61,7 +61,7 @@ async function main() {
   console.log("🏢 Creating Acme Corporation...");
   const acme = await prisma.company.create({
     data: {
-      subscriptionId: "DEMO-2024-001",
+      subscriptionId: "200001",
       name: "Acme Corporation",
       slug: "acme-corp",
       industry: "Technology",
@@ -498,11 +498,11 @@ async function main() {
   console.log("\n🎉 Seed completed successfully!");
   console.log("─────────────────────────────────");
   console.log("Login credentials:");
-  console.log("  Super Admin: PLATFORM / superadmin / SuperAdmin@123");
-  console.log("  Owner:       DEMO-2024-001 / john.owner / Password@123");
-  console.log("  Manager:     DEMO-2024-001 / sarah.manager / Password@123");
-  console.log("  Employee:    DEMO-2024-001 / mike.sales / Password@123");
-  console.log("  Employee:    DEMO-2024-001 / emma.sales / Password@123");
+  console.log("  Super Admin: 100000 / superadmin / SuperAdmin@123");
+  console.log("  Owner:       200001 / john.owner / Password@123");
+  console.log("  Manager:     200001 / sarah.manager / Password@123");
+  console.log("  Employee:    200001 / mike.sales / Password@123");
+  console.log("  Employee:    200001 / emma.sales / Password@123");
 }
 
 main()

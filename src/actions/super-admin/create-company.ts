@@ -64,7 +64,7 @@ export async function createCompany(input: z.infer<typeof createCompanySchema>) 
         // Create company
         const company = await tx.company.create({
           data: {
-            subscriptionId: `sub_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+            subscriptionId: String(Math.floor(100000 + Math.random() * 900000)),
             name: validated.companyName,
             slug: validated.companySlug,
             plan: validated.plan,

@@ -76,7 +76,7 @@ export function LoginForm() {
               <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="subscriptionId"
-                placeholder="e.g. DEMO-2024-001"
+                placeholder="e.g. 123456"
                 className="pl-9"
                 {...register("subscriptionId")}
               />
