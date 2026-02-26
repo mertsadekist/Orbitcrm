@@ -23,12 +23,20 @@ function isPublicRoute(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  // Detect HTTPS: Coolify's Traefik proxy terminates TLS and forwards requests
+  // to the container over plain HTTP, setting x-forwarded-proto: https.
+  // NextAuth v5 uses the __Secure- cookie prefix on HTTPS and no prefix on HTTP.
+  // getToken must use the matching secureCookie flag so it reads the right cookie.
+  const isSecure =
+    request.headers.get("x-forwarded-proto") === "https" ||
+    (process.env.AUTH_URL ?? "").startsWith("https");
+
   // Decode the JWT directly from the cookie — bypasses session callback,
   // reads custom fields (role, companyId, etc.) straight from the token payload.
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-    // NextAuth v5 encrypts cookies; getToken handles JWE decryption automatically.
+    secureCookie: isSecure,
   });
 
   const isLoggedIn = !!token;
