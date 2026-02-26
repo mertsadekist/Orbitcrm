@@ -58,13 +58,13 @@ export default {
     // full implementations for the app.
     jwt({ token, user }) {
       if (user) {
-        token.role = (user as Record<string, unknown>).role as import("@/generated/prisma/client").Role;
+        token.role = (user as unknown as Record<string, unknown>).role as import("@/generated/prisma/client").Role;
       }
       return token;
     },
     session({ session, token }) {
       if (token.role) {
-        (session.user as Record<string, unknown>).role = token.role;
+        (session.user as unknown as Record<string, unknown>).role = token.role;
       }
       return session;
     },
