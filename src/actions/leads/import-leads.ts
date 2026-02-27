@@ -60,7 +60,7 @@ export async function importLeads(rows: ImportLeadInput[]) {
         if (result.success) {
           validRows.push(result.data);
         } else {
-          errors.push(`Row ${i + 1}: ${result.error.errors[0]?.message ?? "Invalid data"}`);
+          errors.push(`Row ${i + 1}: ${result.error.issues[0]?.message ?? "Invalid data"}`);
         }
       });
 
