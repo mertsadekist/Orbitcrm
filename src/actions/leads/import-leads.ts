@@ -92,7 +92,7 @@ export async function importLeads(rows: ImportLeadInput[]) {
         const existing = await prisma.lead.findMany({
           where: {
             companyId: tenant.companyId,
-            email: { in: emailsInBatch, mode: "insensitive" },
+            email: { in: emailsInBatch },
           },
           select: { email: true },
         });
