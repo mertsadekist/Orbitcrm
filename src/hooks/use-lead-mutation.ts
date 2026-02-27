@@ -11,7 +11,7 @@ import { updateLeadNote } from "@/actions/leads/update-lead-note";
 import { deleteLeadNote } from "@/actions/leads/delete-lead-note";
 import { bulkAssignLeads } from "@/actions/leads/bulk-assign-leads";
 import { bulkUpdateStatus } from "@/actions/leads/bulk-update-status";
-import { importLeads } from "@/actions/leads/import-leads";
+import { importLeads, type ImportLeadInput } from "@/actions/leads/import-leads";
 import type { ParsedLeadRow } from "@/lib/leads/excel-parser";
 import type { LeadStatusValue } from "@/types/lead";
 
@@ -185,7 +185,7 @@ export function useBulkUpdateStatus() {
 export function useImportLeads() {
   const invalidate = useInvalidateLeads();
   return useMutation({
-    mutationFn: (rows: ParsedLeadRow[]) => importLeads(rows),
+    mutationFn: (rows: ParsedLeadRow[]) => importLeads(rows as unknown as ImportLeadInput[]),
     onSuccess: (result) => {
       if (result.success) {
         toast.success(
