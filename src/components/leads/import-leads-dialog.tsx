@@ -205,7 +205,7 @@ export function ImportLeadsDialog() {
             <table className="w-full text-xs">
               <thead className="bg-muted/50">
                 <tr>
-                  {["First Name", "Last Name", "Email", "Phone", "Company", "Score"].map((h) => (
+                  {["First Name", "Last Name", "Email", "Status", "Source", "Assigned To", "Campaign"].map((h) => (
                     <th
                       key={h}
                       className="whitespace-nowrap px-3 py-2 text-left font-medium text-muted-foreground"
@@ -221,9 +221,10 @@ export function ImportLeadsDialog() {
                     <td className="px-3 py-2 font-medium">{row.firstName}</td>
                     <td className="px-3 py-2 text-muted-foreground">{row.lastName ?? "—"}</td>
                     <td className="px-3 py-2 text-muted-foreground">{row.email ?? "—"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{row.phone ?? "—"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{row.companyName ?? "—"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{row.score ?? "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.status ?? "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.source ?? "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.assignedTo ?? "—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.campaignName ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

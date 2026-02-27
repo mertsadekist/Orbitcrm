@@ -21,6 +21,14 @@ const importRowSchema = z.object({
   companyName: z.string().max(200).optional(),
   score: z.number().min(0).max(100).optional(),
   notes: z.string().max(5000).optional(),
+  // New columns
+  status: z
+    .enum(["NEW", "CONTACTED", "QUALIFIED", "UNQUALIFIED", "CONVERTED"])
+    .optional(),
+  createdAt: z.coerce.date().optional(),
+  source: z.string().max(50).optional(),
+  assignedTo: z.string().max(200).optional(), // email or "First Last" — resolved below
+  campaignName: z.string().max(200).optional(),
 });
 
 export type ImportLeadInput = z.infer<typeof importRowSchema>;
@@ -120,30 +128,58 @@ export async function importLeads(rows: ImportLeadInput[]) {
         return { imported: 0, skipped, errors } satisfies ImportResult;
       }
 
+      // ── Resolve "Assigned To" values → userId ─────────────────────────
+      const assignedToValues = [
+        ...new Set(
+          toInsert.map((r) => r.assignedTo).filter((v): v is string => !!v)
+        ),
+      ];
+
+      const userMap = new Map<string, string>(); // email/full-name (lower) → userId
+      if (assignedToValues.length > 0) {
+        const users = await prisma.user.findMany({
+          where: { companyId: tenant.companyId, isActive: true },
+          select: { id: true, email: true, firstName: true, lastName: true },
+        });
+        for (const u of users) {
+          userMap.set(u.email.toLowerCase(), u.id);
+          userMap.set(`${u.firstName} ${u.lastName}`.toLowerCase(), u.id);
+        }
+      }
+
       // Bulk insert
       await prisma.$transaction([
         prisma.lead.createMany({
-          data: toInsert.map((row) => ({
-            companyId: tenant.companyId,
-            firstName: row.firstName,
-            lastName: row.lastName ?? null,
-            email: row.email || null,
-            phone: row.phone || null,
-            companyName: row.companyName || null,
-            source: "import",
-            status: "NEW",
-            score: row.score ?? 0,
-            notes: row.notes
-              ? ([
-                  {
-                    id: crypto.randomUUID(),
-                    content: row.notes,
-                    createdAt: new Date().toISOString(),
-                    createdBy: { id: tenant.userId, name: "Import" },
-                  },
-                ] as unknown as Prisma.InputJsonValue)
-              : undefined,
-          })),
+          data: toInsert.map((row) => {
+            const assignedToId = row.assignedTo
+              ? (userMap.get(row.assignedTo.toLowerCase()) ?? null)
+              : null;
+
+            return {
+              companyId: tenant.companyId,
+              firstName: row.firstName,
+              lastName: row.lastName ?? null,
+              email: row.email || null,
+              phone: row.phone || null,
+              companyName: row.companyName || null,
+              source: row.source ?? "import",
+              status: row.status ?? "NEW",
+              score: row.score ?? 0,
+              assignedToId,
+              campaignName: row.campaignName ?? null,
+              ...(row.createdAt ? { createdAt: row.createdAt } : {}),
+              notes: row.notes
+                ? ([
+                    {
+                      id: crypto.randomUUID(),
+                      content: row.notes,
+                      createdAt: new Date().toISOString(),
+                      createdBy: { id: tenant.userId, name: "Import" },
+                    },
+                  ] as unknown as Prisma.InputJsonValue)
+                : undefined,
+            };
+          }),
         }),
         // Single audit log for the entire import batch
         prisma.auditLog.create({

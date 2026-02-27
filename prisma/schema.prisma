@@ -157,6 +157,7 @@ model Lead {
   score         Int?       @default(0)
   notes         Json?
   tags          String?
+  campaignName  String?
   convertedAt   DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt

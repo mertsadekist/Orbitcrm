@@ -1,12 +1,16 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { FileQuestion, UserPlus, Upload } from "lucide-react";
+import { FileQuestion, UserPlus, Upload, Globe, Users, Share2, Phone } from "lucide-react";
 
 const sourceConfig: Record<string, { label: string; icon: typeof FileQuestion }> = {
-  quiz: { label: "Quiz", icon: FileQuestion },
-  manual: { label: "Manual", icon: UserPlus },
-  import: { label: "Import", icon: Upload },
+  quiz:      { label: "Quiz",      icon: FileQuestion },
+  manual:    { label: "Manual",    icon: UserPlus },
+  import:    { label: "Import",    icon: Upload },
+  website:   { label: "Website",   icon: Globe },
+  referral:  { label: "Referral",  icon: Users },
+  social:    { label: "Social",    icon: Share2 },
+  cold_call: { label: "Cold Call", icon: Phone },
 };
 
 export function LeadSourceBadge({ source }: { source: string }) {
