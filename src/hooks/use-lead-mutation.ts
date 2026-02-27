@@ -11,6 +11,8 @@ import { updateLeadNote } from "@/actions/leads/update-lead-note";
 import { deleteLeadNote } from "@/actions/leads/delete-lead-note";
 import { bulkAssignLeads } from "@/actions/leads/bulk-assign-leads";
 import { bulkUpdateStatus } from "@/actions/leads/bulk-update-status";
+import { importLeads } from "@/actions/leads/import-leads";
+import type { ParsedLeadRow } from "@/lib/leads/excel-parser";
 import type { LeadStatusValue } from "@/types/lead";
 
 function useInvalidateLeads() {
@@ -177,5 +179,24 @@ export function useBulkUpdateStatus() {
       }
     },
     onError: () => toast.error("Failed to bulk update status"),
+  });
+}
+
+export function useImportLeads() {
+  const invalidate = useInvalidateLeads();
+  return useMutation({
+    mutationFn: (rows: ParsedLeadRow[]) => importLeads(rows),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success(
+          `Imported ${result.data.imported} lead${result.data.imported !== 1 ? "s" : ""}` +
+            (result.data.skipped > 0 ? `, ${result.data.skipped} skipped` : "")
+        );
+        invalidate();
+      } else {
+        toast.error(result.error ?? "Import failed");
+      }
+    },
+    onError: () => toast.error("Failed to import leads"),
   });
 }

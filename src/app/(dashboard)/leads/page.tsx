@@ -5,6 +5,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { LeadFilterBar } from "@/components/leads/lead-filter-bar";
 import { KanbanBoard } from "@/components/leads/kanban-board";
 import { CreateLeadDialog } from "@/components/leads/create-lead-dialog";
+import { ImportLeadsDialog } from "@/components/leads/import-leads-dialog";
 import type { SerializedLead, CompanyUser, LeadNote } from "@/types/lead";
 
 type LeadsPageProps = {
@@ -86,7 +87,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
               Manage and track your leads pipeline.
             </p>
           </div>
-          <CreateLeadDialog companyUsers={companyUsers} />
+          <div className="flex items-center gap-2">
+            <ImportLeadsDialog />
+            <CreateLeadDialog companyUsers={companyUsers} />
+          </div>
         </div>
 
         {/* Filters */}
