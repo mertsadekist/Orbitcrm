@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQueryState, parseAsInteger } from "nuqs";
 import {
   Select,
@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { X, Search } from "lucide-react";
+import { X, Search, SlidersHorizontal } from "lucide-react";
 import type { CompanyUser } from "@/types/lead";
 
 type LeadFilterBarProps = {
@@ -31,11 +31,11 @@ const SOURCES = [
 ];
 
 const STATUSES = [
-  { value: "NEW",          label: "New" },
-  { value: "CONTACTED",    label: "Contacted" },
-  { value: "QUALIFIED",    label: "Qualified" },
-  { value: "UNQUALIFIED",  label: "Unqualified" },
-  { value: "CONVERTED",    label: "Converted" },
+  { value: "NEW",         label: "New" },
+  { value: "CONTACTED",   label: "Contacted" },
+  { value: "QUALIFIED",   label: "Qualified" },
+  { value: "UNQUALIFIED", label: "Unqualified" },
+  { value: "CONVERTED",   label: "Converted" },
 ];
 
 const DATE_RANGES = [
@@ -46,8 +46,14 @@ const DATE_RANGES = [
   { value: "90d",   label: "Last 90 days" },
 ];
 
+/** Encode scoreMin/Max as a single string for Select value */
+function encodeScore(min: number | null, max: number | null): string {
+  if (min == null && max == null) return "all";
+  return `${min ?? 0}-${max ?? 100}`;
+}
+
 export function LeadFilterBar({ companyUsers, campaigns }: LeadFilterBarProps) {
-  // URL-bound filter state (nuqs)
+  // ── Applied (URL-bound) state ─────────────────────────────────────────
   const [search,    setSearch]    = useQueryState("q");
   const [assignee,  setAssignee]  = useQueryState("assignee");
   const [status,    setStatus]    = useQueryState("status");
@@ -57,28 +63,42 @@ export function LeadFilterBar({ companyUsers, campaigns }: LeadFilterBarProps) {
   const [dateRange, setDateRange] = useQueryState("dateRange");
   const [campaign,  setCampaign]  = useQueryState("campaign");
 
-  // Local search value for debouncing
-  const [localSearch, setLocalSearch] = useState(search ?? "");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // ── Pending (local) state — what the user is staging before Apply ─────
+  const [pSearch,    setPSearch]    = useState(search ?? "");
+  const [pAssignee,  setPAssignee]  = useState(assignee ?? "all");
+  const [pStatus,    setPStatus]    = useState(status ?? "all");
+  const [pSource,    setPSource]    = useState(source ?? "all");
+  const [pScore,     setPScore]     = useState(encodeScore(scoreMin, scoreMax));
+  const [pDateRange, setPDateRange] = useState(dateRange ?? "all");
+  const [pCampaign,  setPCampaign]  = useState(campaign ?? "all");
 
-  // Sync local search if URL param changes externally (e.g. back/forward)
+  // Sync pending state when URL changes externally (browser back/forward)
   useEffect(() => {
-    setLocalSearch(search ?? "");
-  }, [search]);
+    setPSearch(search ?? "");
+    setPAssignee(assignee ?? "all");
+    setPStatus(status ?? "all");
+    setPSource(source ?? "all");
+    setPScore(encodeScore(scoreMin, scoreMax));
+    setPDateRange(dateRange ?? "all");
+    setPCampaign(campaign ?? "all");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, assignee, status, source, scoreMin, scoreMax, dateRange, campaign]);
 
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setLocalSearch(value);
-      clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        void setSearch(value.trim() || null);
-      }, 300);
-    },
-    [setSearch]
-  );
+  // ── Derived state ─────────────────────────────────────────────────────
+  const appliedScore = encodeScore(scoreMin, scoreMax);
 
-  // Count active filters for badge
-  const activeCount = [
+  /** True when pending values differ from what's currently in the URL */
+  const hasUnapplied =
+    pSearch    !== (search ?? "")         ||
+    pAssignee  !== (assignee ?? "all")    ||
+    pStatus    !== (status ?? "all")      ||
+    pSource    !== (source ?? "all")      ||
+    pScore     !== appliedScore           ||
+    pDateRange !== (dateRange ?? "all")   ||
+    pCampaign  !== (campaign ?? "all");
+
+  /** Count of currently applied (URL) filters */
+  const appliedCount = [
     !!search,
     !!assignee,
     !!status,
@@ -88,19 +108,32 @@ export function LeadFilterBar({ companyUsers, campaigns }: LeadFilterBarProps) {
     !!campaign,
   ].filter(Boolean).length;
 
-  const hasFilters = activeCount > 0;
+  // ── Handlers ──────────────────────────────────────────────────────────
+  function handleApply() {
+    void setSearch(pSearch.trim() || null);
+    void setAssignee(pAssignee  === "all" ? null : pAssignee);
+    void setStatus(pStatus    === "all" ? null : pStatus);
+    void setSource(pSource    === "all" ? null : pSource);
+    if (pScore === "all") {
+      void setScoreMin(null);
+      void setScoreMax(null);
+    } else {
+      const [min, max] = pScore.split("-").map(Number);
+      void setScoreMin(min);
+      void setScoreMax(max);
+    }
+    void setDateRange(pDateRange === "all" ? null : pDateRange);
+    void setCampaign(pCampaign  === "all" ? null : pCampaign);
+  }
 
-  function clearAll() {
-    clearTimeout(debounceRef.current);
-    setLocalSearch("");
-    void setSearch(null);
-    void setAssignee(null);
-    void setStatus(null);
-    void setSource(null);
-    void setScoreMin(null);
-    void setScoreMax(null);
-    void setDateRange(null);
-    void setCampaign(null);
+  function handleClear() {
+    // Reset pending
+    setPSearch(""); setPAssignee("all"); setPStatus("all");
+    setPSource("all"); setPScore("all"); setPDateRange("all"); setPCampaign("all");
+    // Clear URL
+    void setSearch(null); void setAssignee(null); void setStatus(null);
+    void setSource(null); void setScoreMin(null); void setScoreMax(null);
+    void setDateRange(null); void setCampaign(null);
   }
 
   return (
@@ -112,12 +145,13 @@ export function LeadFilterBar({ companyUsers, campaigns }: LeadFilterBarProps) {
         <Input
           className="pl-8 pr-7 w-[200px] h-9"
           placeholder="Search leads..."
-          value={localSearch}
-          onChange={(e) => handleSearchChange(e.target.value)}
+          value={pSearch}
+          onChange={(e) => setPSearch(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
         />
-        {localSearch && (
+        {pSearch && (
           <button
-            onClick={() => handleSearchChange("")}
+            onClick={() => setPSearch("")}
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
@@ -126,10 +160,7 @@ export function LeadFilterBar({ companyUsers, campaigns }: LeadFilterBarProps) {
       </div>
 
       {/* ── Assignee ───────────────────────────────────────── */}
-      <Select
-        value={assignee ?? "all"}
-        onValueChange={(v) => void setAssignee(v === "all" ? null : v)}
-      >
+      <Select value={pAssignee} onValueChange={setPAssignee}>
         <SelectTrigger className="w-[160px] h-9">
           <SelectValue placeholder="All assignees" />
         </SelectTrigger>
@@ -144,59 +175,33 @@ export function LeadFilterBar({ companyUsers, campaigns }: LeadFilterBarProps) {
       </Select>
 
       {/* ── Status ─────────────────────────────────────────── */}
-      <Select
-        value={status ?? "all"}
-        onValueChange={(v) => void setStatus(v === "all" ? null : v)}
-      >
+      <Select value={pStatus} onValueChange={setPStatus}>
         <SelectTrigger className="w-[140px] h-9">
           <SelectValue placeholder="All statuses" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All statuses</SelectItem>
           {STATUSES.map((s) => (
-            <SelectItem key={s.value} value={s.value}>
-              {s.label}
-            </SelectItem>
+            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
 
       {/* ── Source ─────────────────────────────────────────── */}
-      <Select
-        value={source ?? "all"}
-        onValueChange={(v) => void setSource(v === "all" ? null : v)}
-      >
+      <Select value={pSource} onValueChange={setPSource}>
         <SelectTrigger className="w-[130px] h-9">
           <SelectValue placeholder="All sources" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All sources</SelectItem>
           {SOURCES.map((s) => (
-            <SelectItem key={s.value} value={s.value}>
-              {s.label}
-            </SelectItem>
+            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
 
       {/* ── Score range ────────────────────────────────────── */}
-      <Select
-        value={
-          scoreMin != null || scoreMax != null
-            ? `${scoreMin ?? 0}-${scoreMax ?? 100}`
-            : "all"
-        }
-        onValueChange={(v) => {
-          if (v === "all") {
-            void setScoreMin(null);
-            void setScoreMax(null);
-          } else {
-            const [min, max] = v.split("-").map(Number);
-            void setScoreMin(min);
-            void setScoreMax(max);
-          }
-        }}
-      >
+      <Select value={pScore} onValueChange={setPScore}>
         <SelectTrigger className="w-[150px] h-9">
           <SelectValue placeholder="All scores" />
         </SelectTrigger>
@@ -209,50 +214,55 @@ export function LeadFilterBar({ companyUsers, campaigns }: LeadFilterBarProps) {
       </Select>
 
       {/* ── Date range ─────────────────────────────────────── */}
-      <Select
-        value={dateRange ?? "all"}
-        onValueChange={(v) => void setDateRange(v === "all" ? null : v)}
-      >
+      <Select value={pDateRange} onValueChange={setPDateRange}>
         <SelectTrigger className="w-[140px] h-9">
           <SelectValue placeholder="All time" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All time</SelectItem>
           {DATE_RANGES.map((d) => (
-            <SelectItem key={d.value} value={d.value}>
-              {d.label}
-            </SelectItem>
+            <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      {/* ── Campaign (only if any exist in DB) ─────────────── */}
+      {/* ── Campaign ───────────────────────────────────────── */}
       {campaigns.length > 0 && (
-        <Select
-          value={campaign ?? "all"}
-          onValueChange={(v) => void setCampaign(v === "all" ? null : v)}
-        >
+        <Select value={pCampaign} onValueChange={setPCampaign}>
           <SelectTrigger className="w-[160px] h-9">
             <SelectValue placeholder="All campaigns" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All campaigns</SelectItem>
             {campaigns.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
+              <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       )}
 
-      {/* ── Clear all ──────────────────────────────────────── */}
-      {hasFilters && (
-        <Button variant="ghost" size="sm" onClick={clearAll} className="h-9 gap-1.5">
+      {/* ── Apply ──────────────────────────────────────────── */}
+      <Button
+        size="sm"
+        className="h-9 gap-1.5"
+        variant={hasUnapplied ? "default" : "outline"}
+        onClick={handleApply}
+        disabled={!hasUnapplied}
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+        Apply
+        {hasUnapplied && (
+          <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-white/80" />
+        )}
+      </Button>
+
+      {/* ── Clear ──────────────────────────────────────────── */}
+      {appliedCount > 0 && (
+        <Button variant="ghost" size="sm" onClick={handleClear} className="h-9 gap-1.5">
           <X className="h-3.5 w-3.5" />
           Clear
           <Badge variant="secondary" className="h-4 min-w-4 px-1 text-[10px] leading-none">
-            {activeCount}
+            {appliedCount}
           </Badge>
         </Button>
       )}
