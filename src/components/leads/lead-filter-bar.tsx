@@ -59,7 +59,7 @@ export function LeadFilterBar({ companyUsers, campaigns }: LeadFilterBarProps) {
 
   // Local search value for debouncing
   const [localSearch, setLocalSearch] = useState(search ?? "");
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Sync local search if URL param changes externally (e.g. back/forward)
   useEffect(() => {
