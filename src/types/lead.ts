@@ -77,4 +77,9 @@ export type LeadFilters = {
   scoreMax?: number;
   dateFrom?: string;
   dateTo?: string;
+  // Extended filters
+  search?: string;
+  status?: string;
+  dateRange?: string;
+  campaign?: string;
 };

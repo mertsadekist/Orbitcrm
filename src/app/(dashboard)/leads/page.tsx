@@ -21,12 +21,17 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     companyId: tenant.companyId,
   };
 
+  // Assignee
   if (params.assignee && typeof params.assignee === "string") {
     where.assignedToId = params.assignee;
   }
+
+  // Source
   if (params.source && typeof params.source === "string") {
     where.source = params.source;
   }
+
+  // Score range
   if (params.scoreMin || params.scoreMax) {
     const score: Record<string, number> = {};
     if (params.scoreMin) score.gte = Number(params.scoreMin);
@@ -34,7 +39,45 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     where.score = score;
   }
 
-  const [leads, users] = await Promise.all([
+  // Status
+  if (params.status && typeof params.status === "string") {
+    where.status = params.status;
+  }
+
+  // Campaign
+  if (params.campaign && typeof params.campaign === "string") {
+    where.campaignName = params.campaign;
+  }
+
+  // Full-text search (name / email / phone / company)
+  if (params.q && typeof params.q === "string") {
+    const q = params.q.trim();
+    if (q) {
+      where.OR = [
+        { firstName:   { contains: q } },
+        { lastName:    { contains: q } },
+        { email:       { contains: q } },
+        { phone:       { contains: q } },
+        { companyName: { contains: q } },
+      ];
+    }
+  }
+
+  // Date range presets
+  if (params.dateRange && typeof params.dateRange === "string" && params.dateRange !== "all") {
+    const now = new Date();
+    const start = new Date(now);
+    switch (params.dateRange) {
+      case "today": start.setHours(0, 0, 0, 0); break;
+      case "week":  start.setDate(now.getDate() - 7); break;
+      case "month": start.setMonth(now.getMonth() - 1); break;
+      case "30d":   start.setDate(now.getDate() - 30); break;
+      case "90d":   start.setDate(now.getDate() - 90); break;
+    }
+    where.createdAt = { gte: start };
+  }
+
+  const [leads, users, campaignRows] = await Promise.all([
     prisma.lead.findMany({
       where,
       include: {
@@ -49,6 +92,13 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       where: { companyId: tenant.companyId, isActive: true },
       select: { id: true, firstName: true, lastName: true, email: true },
       orderBy: { firstName: "asc" },
+    }),
+    // Distinct campaign names for the campaign filter dropdown
+    prisma.lead.findMany({
+      where: { companyId: tenant.companyId, campaignName: { not: null } },
+      select: { campaignName: true },
+      distinct: ["campaignName"],
+      orderBy: { campaignName: "asc" },
     }),
   ]);
 
@@ -76,6 +126,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   }));
 
   const companyUsers: CompanyUser[] = users;
+  const campaignNames: string[] = campaignRows
+    .map((r) => r.campaignName)
+    .filter((c): c is string => !!c);
 
   return (
     <NuqsAdapter>
@@ -96,7 +149,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
         {/* Filters */}
         <Suspense>
-          <LeadFilterBar companyUsers={companyUsers} />
+          <LeadFilterBar companyUsers={companyUsers} campaigns={campaignNames} />
         </Suspense>
 
         {/* Kanban */}
