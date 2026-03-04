@@ -16,6 +16,7 @@ const updateLeadSchema = z.object({
   companyName: z.string().max(200).optional(),
   source: z.string().max(50).optional(),
   tags: z.string().max(500).optional(),
+  campaignName: z.string().max(200).optional(),
 });
 
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;

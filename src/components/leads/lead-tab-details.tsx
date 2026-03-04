@@ -20,6 +20,7 @@ export function LeadTabDetails({ lead }: LeadTabDetailsProps) {
   const [phone, setPhone] = useState(lead.phone ?? "");
   const [companyName, setCompanyName] = useState(lead.companyName ?? "");
   const [tags, setTags] = useState(lead.tags ?? "");
+  const [campaignName, setCampaignName] = useState(lead.campaignName ?? "");
 
   // Sync local state when lead data changes (e.g. after refetch)
   useEffect(() => {
@@ -29,6 +30,7 @@ export function LeadTabDetails({ lead }: LeadTabDetailsProps) {
     setPhone(lead.phone ?? "");
     setCompanyName(lead.companyName ?? "");
     setTags(lead.tags ?? "");
+    setCampaignName(lead.campaignName ?? "");
   }, [lead]);
 
   const isDirty =
@@ -37,7 +39,8 @@ export function LeadTabDetails({ lead }: LeadTabDetailsProps) {
     email !== (lead.email ?? "") ||
     phone !== (lead.phone ?? "") ||
     companyName !== (lead.companyName ?? "") ||
-    tags !== (lead.tags ?? "");
+    tags !== (lead.tags ?? "") ||
+    campaignName !== (lead.campaignName ?? "");
 
   const handleSave = () => {
     updateLead.mutate({
@@ -49,6 +52,7 @@ export function LeadTabDetails({ lead }: LeadTabDetailsProps) {
         phone: phone || undefined,
         companyName: companyName || undefined,
         tags: tags || undefined,
+        campaignName: campaignName || undefined,
       },
     });
   };
@@ -125,6 +129,16 @@ export function LeadTabDetails({ lead }: LeadTabDetailsProps) {
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder="Comma-separated tags"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="detail-campaignName">Campaign Name</Label>
+        <Input
+          id="detail-campaignName"
+          value={campaignName}
+          onChange={(e) => setCampaignName(e.target.value)}
+          placeholder="e.g. Summer 2024"
         />
       </div>
 

@@ -47,6 +47,7 @@ export type SerializedLead = {
   score: number | null;
   notes: LeadNote[] | null;
   tags: string | null;
+  campaignName: string | null;
   convertedAt: string | null;
   createdAt: string;
   updatedAt: string;
