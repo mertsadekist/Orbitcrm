@@ -67,6 +67,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     score: lead.score,
     notes: (lead.notes as unknown as LeadNote[]) ?? null,
     tags: lead.tags,
+    campaignName: lead.campaignName,
     convertedAt: lead.convertedAt?.toISOString() ?? null,
     createdAt: lead.createdAt.toISOString(),
     updatedAt: lead.updatedAt.toISOString(),
